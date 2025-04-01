@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 public class Sword : MonoBehaviour
@@ -5,10 +6,12 @@ public class Sword : MonoBehaviour
     [SerializeField] private GameObject slashAnimPrefab;
     [SerializeField] private Transform slashAnimSpawnPoint;
     [SerializeField] private Transform weaponCollider;
+    [SerializeField] private float swordAttackCD = 0.5f;
     private PlayerControls playerControls;
     private Animator myAnimator;
     private PlayerController playerController;
     private ActiveWeapon activeWeapon;
+    private bool attackButtonDown, isAttacking = false;
     private GameObject slashAnim;
     private void Awake()
     {
@@ -23,12 +26,22 @@ public class Sword : MonoBehaviour
     }
     private void Start()
     {
-        playerControls.Combat.Attack.started += _ => Attack();
+        playerControls.Combat.Attack.started += _ => StartAttacking();
+        playerControls.Combat.Attack.canceled += _ => StopAttacking();
+
     }
 
     private void Update()
     {
         MouseFollowWithOffset();
+        Attack();
+    }
+    private void StartAttacking(){
+        attackButtonDown = true;
+    }
+    private void StopAttacking()
+    {
+        attackButtonDown = false;
     }
     public void DoneAttackingAnimEvent()
     {
@@ -37,10 +50,19 @@ public class Sword : MonoBehaviour
 
     private void Attack()
     {
-        myAnimator.SetTrigger("Attack");
-        weaponCollider.gameObject.SetActive(true);
-        slashAnim = Instantiate(slashAnimPrefab,slashAnimSpawnPoint.transform.position, Quaternion.identity);
-        slashAnim.transform.parent = this.transform.parent;
+        if(attackButtonDown && !isAttacking)
+        {
+            isAttacking = true;
+            myAnimator.SetTrigger("Attack");
+            weaponCollider.gameObject.SetActive(true);
+            slashAnim = Instantiate(slashAnimPrefab,slashAnimSpawnPoint.transform.position, Quaternion.identity);
+            slashAnim.transform.parent = this.transform.parent;
+            StartCoroutine(AttackCDRoutine());
+        }
+    }
+    private IEnumerator AttackCDRoutine(){
+        yield return new WaitForSeconds(swordAttackCD);
+        isAttacking = false;
     }
     public void SwingUpFlipAnimEvent()
     {
